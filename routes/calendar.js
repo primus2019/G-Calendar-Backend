@@ -85,13 +85,41 @@ router.post('/calendar/delete_task', function(req, res, next) {
       connection.release();
     })
   })
-  
 })
 
 // POST /calendar/alter_task: response
 router.post('/calendar/alter_task', function(req, res, next) {
   taskId = req.body['task_id']
   task = req.body['task']
+  pool.getConnection(function (error, connection) {
+    if (error) throw error;
+    connection.query(`
+      UPDATE tasks
+      SET
+        date="${ task.date }",
+        start_hour=${ task.start_hour },
+        start_minute=${ task.start_minute },
+        end_hour=${ task.end_hour },
+        end_minute=${ task.end_minute },
+        length=${ task.length },
+        offset=${ task.offset },
+        title="${ task.title }",
+        description="${ task.description }",
+        location="${ task.location }",
+        importance=${ task.importance },
+        daily=${ task.daily }
+      WHERE
+        task_id=${ taskId }
+      ;
+    `, function (error, result, fields) {
+      if (error) {
+        res.send({ status: 1 });
+        throw error;
+      };
+      res.send({ status: 0 });
+      connection.release();
+    })
+  })
 })
 
 module.exports = router;
