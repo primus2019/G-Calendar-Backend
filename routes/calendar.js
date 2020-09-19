@@ -70,6 +70,22 @@ router.post('/calendar/add_task', function(req, res, next) {
 // POST /calendar/delete_task: response
 router.post('/calendar/delete_task', function(req, res, next) {
   taskId = req.body['task_id']
+  pool.getConnection(function (error, connection) {
+    if (error) throw error;
+    connection.query(`
+      DELETE FROM tasks
+      WHERE task_id = ${ taskId }
+      ;
+    `, function (error, result, fields) {
+      if (error) {
+        res.send({ status: 1 });
+        throw error;
+      };
+      res.send({ status: 0 });
+      connection.release();
+    })
+  })
+  
 })
 
 // POST /calendar/alter_task: response
