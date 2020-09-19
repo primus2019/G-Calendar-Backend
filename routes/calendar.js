@@ -10,8 +10,8 @@ const timeUnitMap = {
 
 // GET /calendar/review_tasks: response
 router.get('/calendar/review_tasks', function(req, res, next) {
-  timeUnit = req.query['time_unit']
-  startingDate = req.query['starting_date']
+  var timeUnit = req.query['time_unit']
+  var startingDate = req.query['starting_date']
   pool.getConnection(function (error, connection) {
     if (error) throw error;
     connection.query(`
@@ -20,7 +20,17 @@ router.get('/calendar/review_tasks', function(req, res, next) {
        WHERE date >= ${ startingDate }
          AND date <= ${ parseInt(startingDate) + timeUnitMap[timeUnit] - 1 };
     `, function (error, result, fields) {
-      res.send(result);
+      var mapResult = {}
+      for (var i = 0; i < timeUnitMap[timeUnit]; i++) {
+        var tmpDate = (parseInt(startingDate) + i).toString()
+        mapResult[i] = { date: tmpDate }
+        for (var j = 0; j < result.length; j++) {
+          if (result[j].date === tmpDate) {
+            mapResult[i][result[j].start_hour] = result[j]
+          }
+        }
+      }
+      res.send(mapResult);
       connection.release();
     })
   })
@@ -28,7 +38,10 @@ router.get('/calendar/review_tasks', function(req, res, next) {
 
 // POST /calendar/add_task: response
 router.post('/calendar/add_task', function(req, res, next) {
-  task = req.body['task']
+  var task = req.body['task']
+  var duration_hour = task.end_hour - task.start_hour + (task.end_minute - task.start_minute) / 60 - (task.end_minute >= task.start_minute ? 0 : 1)
+  task['length'] = Math.round(duration_hour, 1)
+  task['offset'] = Math.round(task.start_minute / 60, 1)
   pool.getConnection(function (error, connection) {
     if (error) throw error;
     connection.query(`
@@ -41,6 +54,8 @@ router.post('/calendar/add_task', function(req, res, next) {
       length,
       offset,
       title,
+      description,
+      location,
       importance,
       daily
     )
@@ -53,6 +68,8 @@ router.post('/calendar/add_task', function(req, res, next) {
       ${ task.length },
       ${ task.offset },
       "${ task.title }",
+      "${ task.description }",
+      "${ task.location }",
       ${ task.importance },
       ${ task.daily }
     );
@@ -89,8 +106,10 @@ router.post('/calendar/delete_task', function(req, res, next) {
 
 // POST /calendar/alter_task: response
 router.post('/calendar/alter_task', function(req, res, next) {
-  taskId = req.body['task_id']
   task = req.body['task']
+  var duration_hour = task.end_hour - task.start_hour + (task.end_minute - task.start_minute) / 60 - (task.end_minute >= task.start_minute ? 0 : 1)
+  task['length'] = Math.round(duration_hour, 1)
+  task['offset'] = Math.round(task.start_minute / 60, 1)
   pool.getConnection(function (error, connection) {
     if (error) throw error;
     connection.query(`
@@ -109,7 +128,7 @@ router.post('/calendar/alter_task', function(req, res, next) {
         importance=${ task.importance },
         daily=${ task.daily }
       WHERE
-        task_id=${ taskId }
+        task_id=${ task.task_id }
       ;
     `, function (error, result, fields) {
       if (error) {
