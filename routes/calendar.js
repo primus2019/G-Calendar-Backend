@@ -18,7 +18,7 @@ router.get('/calendar/review_tasks', function(req, res, next) {
       SELECT *
         FROM tasks
        WHERE date >= ${ startingDate }
-         AND date <= ${ parseInt(startingDate) + timeUnitMap[timeUnit] - 1 }
+         AND date <= ${ parseInt(startingDate) + timeUnitMap[timeUnit] - 1 };
     `, function (error, result, fields) {
       res.send(result);
       connection.release();
@@ -29,7 +29,42 @@ router.get('/calendar/review_tasks', function(req, res, next) {
 // POST /calendar/add_task: response
 router.post('/calendar/add_task', function(req, res, next) {
   task = req.body['task']
-  res.send('received' + task)
+  pool.getConnection(function (error, connection) {
+    if (error) throw error;
+    connection.query(`
+      INSERT INTO tasks (
+      date,
+      start_hour,
+      start_minute,
+      end_hour,
+      end_minute,
+      length,
+      offset,
+      title,
+      importance,
+      daily
+    )
+    VALUES (
+      "${ task.date }",
+      ${ task.start_hour },
+      ${ task.start_minute },
+      ${ task.end_hour },
+      ${ task.end_minute },
+      ${ task.length },
+      ${ task.offset },
+      "${ task.title }",
+      ${ task.importance },
+      ${ task.daily }
+    );
+    `, function (error, result, fields) {
+      if (error) {
+        res.send({ status: 1 });
+        throw error;
+      };
+      res.send({ status: 0 });
+      connection.release();
+    })
+  })
 })
 
 // POST /calendar/delete_task: response
