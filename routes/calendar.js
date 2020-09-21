@@ -39,9 +39,9 @@ router.get('/calendar/review_tasks', function(req, res, next) {
 // POST /calendar/add_task: response
 router.post('/calendar/add_task', function(req, res, next) {
   var task = req.body['task']
-  var duration_hour = task.end_hour - task.start_hour + (task.end_minute - task.start_minute) / 60 - (task.end_minute >= task.start_minute ? 0 : 1)
-  task['length'] = Math.round(duration_hour, 1)
-  task['offset'] = Math.round(task.start_minute / 60, 1)
+  var duration_hour = task.end_hour - task.start_hour + (task.end_minute - task.start_minute) / 60
+  task['length'] = duration_hour
+  task['offset'] = task.start_minute / 60
   pool.getConnection(function (error, connection) {
     if (error) throw error;
     connection.query(`
@@ -107,9 +107,9 @@ router.post('/calendar/delete_task', function(req, res, next) {
 // POST /calendar/alter_task: response
 router.post('/calendar/alter_task', function(req, res, next) {
   task = req.body['task']
-  var duration_hour = task.end_hour - task.start_hour + (task.end_minute - task.start_minute) / 60 - (task.end_minute >= task.start_minute ? 0 : 1)
-  task['length'] = Math.round(duration_hour, 1)
-  task['offset'] = Math.round(task.start_minute / 60, 1)
+  var duration_hour = task.end_hour - task.start_hour + (task.end_minute - task.start_minute) / 60
+  task['length'] = duration_hour
+  task['offset'] = task.start_minute / 60
   pool.getConnection(function (error, connection) {
     if (error) throw error;
     connection.query(`
